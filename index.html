@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Vouchery – Zlatnická dílna Koneční – verze 30×20 mm</title>
+
+  <!--
+    QR knihovna.
+    KÓD VOUCHERU SE DO TÉTO KNIHOVNY NIKAM NEODESÍLÁ.
+    Knihovna pouze běží lokálně v prohlížeči.
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@2.0.4/dist/qrcode.min.js"></script>
+  <!-- Přímý tisk NIIMBOT přes Web Bluetooth (Chrome/Edge) -->
+  <script src="https://cdn.jsdelivr.net/npm/niimbot-web-bluetooth@1.3.5/src/niimbot.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #f3f4f6;
+      color: #222;
+      font-family: Arial, sans-serif;
+    }
+
+    .header {
+      background: #1F4E78;
+      color: white;
+      padding: 22px 18px;
+      text-align: center;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .header p {
+      margin: 6px 0 0;
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 20px auto;
+      padding: 0 15px 40px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 3px 14px rgba(0,0,0,.08);
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    label {
+      display: block;
+      margin: 14px 0 6px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #cfcfcf;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px;
+      border: 0;
+      border-radius: 8px;
+      background: #1F4E78;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: .92;
+    }
+
+    button.secondary {
+      background: #666;
+    }
+
+    button.gold {
+      background: #D4AF37;
+      color: #111;
+    }
+
+    button.danger {
+      background: #9b2226;
+    }
+
+    .message {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+      line-height: 1.5;
+    }
+
+    .message.ok {
+      display: block;
+      background: #e9f7ec;
+      color: #1d5e2a;
+    }
+
+    .message.error {
+      display: block;
+      background: #fdecec;
+      color: #8a1c1c;
+    }
+
+    .voucher-result {
+      display: none;
+      margin-top: 18px;
+      border-top: 1px solid #ddd;
+      padding-top: 18px;
+    }
+
+    .voucher-code {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      letter-spacing: 2px;
+      word-break: break-word;
+      margin: 10px 0;
+    }
+
+    .voucher-info {
+      text-align: center;
+      line-height: 1.7;
+    }
+
+    #qrcode {
+      text-align: center;
+      margin: 18px auto;
+    }
+
+    #qrcode img {
+      width: 260px;
+      height: 260px;
+      image-rendering: pixelated;
+    }
+
+    .status {
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .hidden-frame {
+      display: none;
+    }
+
+    .security-note {
+      margin-top: 12px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .device-gate {
+      display: none;
+    }
+
+    .device-gate.visible {
+      display: block;
+    }
+
+    .app-content {
+      display: none;
+    }
+
+    .app-content.visible {
+      display: block;
+    }
+
+    .device-status {
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .device-status strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 18px;
+    }
+
+    .device-small {
+      margin-top: 10px;
+      color: #666;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .camera-box {
+      display: none;
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    #camera {
+      width: 100%;
+      max-width: 420px;
+      border-radius: 10px;
+      background: black;
+    }
+
+    .print-only {
+      display: none;
+    }
+
+    @media print {
+
+      body {
+        background: white;
+      }
+
+      .header,
+      .no-print,
+      .security-note {
+        display: none !important;
+      }
+
+      .container {
+        margin: 0;
+        padding: 0;
+      }
+
+      .card {
+        box-shadow: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .print-only {
+        display: block;
+      }
+
+      #qrcode img {
+        width: 30mm;
+        height: 20mm;
+      }
+
+      .voucher-code {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <h1>ZLATNICKÁ DÍLNA KONEČNÍ</h1>
+    <p>Voucherový systém</p>
+  </div>
+
+  <div class="container">
+
+    <!-- ========================================================= -->
+    <!-- AUTORIZACE ZAŘÍZENÍ -->
+    <!-- ========================================================= -->
+
+    <div id="deviceGate" class="card device-gate visible no-print">
+      <h2>🔐 Autorizace zařízení</h2>
+
+      <div id="deviceGateStatus" class="device-status">
+        Ověřuji toto zařízení…
+      </div>
+
+      <div id="deviceRegistrationForm" style="display:none;">
+        <label for="registrationKey">Jednorázový klíč</label>
+        <input
+          id="registrationKey"
+          type="text"
+          autocomplete="one-time-code"
+          spellcheck="false"
+          autocapitalize="none"
+          placeholder="Vložte klíč ze správce"
+        >
+
+        <button class="gold" onclick="registerDevice()">
+          AUTORIZOVAT TOTO ZAŘÍZENÍ
+        </button>
+
+        <div id="deviceRegistrationMessage" class="message"></div>
+
+        <div class="device-small">
+          Jednorázový klíč je platný 2 minuty a po úspěšné registraci se okamžitě zneplatní.
+          Po autorizaci se zařízení uloží jako známé a při další práci už tento klíč nepotřebujete.
+        </div>
+      </div>
+    </div>
+
+    <div id="appContent" class="app-content">
+
+    <!-- ========================================================= -->
+    <!-- VYTVOŘENÍ VOUCHERU -->
+    <!-- ========================================================= -->
+
+    <div class="card no-print">
+
+      <h2>🎟️ Vytvořit nový voucher</h2>
+
+      <label for="createAmount">
+        Hodnota voucheru (Kč)
+      </label>
+
+      <input
+        id="createAmount"
+        type="number"
+        min="1"
+        step="1"
+        placeholder="Např. 5000"
+      >
+
+      <label for="createIssuer">
+        Kdo voucher vystavil
+      </label>
+
+      <input
+        id="createIssuer"
+        type="text"
+        placeholder="Jméno prodavačky / prodavače"
+      >
+
+      <label for="createPin">
+        PIN pro vytvoření
+      </label>
+
+      <input
+        id="createPin"
+        type="password"
+        autocomplete="off"
+        placeholder="PIN"
+      >
+
+      <button onclick="createVoucher()">
+        VYTVOŘIT VOUCHER
+      </button>
+
+      <div id="createMessage" class="message"></div>
+
+    </div>
+
+
+    <!-- ========================================================= -->
+    <!-- VÝSLEDEK -->
+    <!-- ========================================================= -->
+
+    <div
+      id="voucherResult"
+      class="card voucher-result"
+    >
+
+      <h2>Voucher vytvořen</h2>
+
+      <div class="voucher-info">
+        Hodnota:
+        <strong id="resultAmount"></strong>
+        <br>
+        Platnost do:
+        <strong id="resultExpiry"></strong>
+      </div>
+
+      <div
+        id="resultCode"
+        class="voucher-code"
+      ></div>
+
+      <div id="qrcode"></div>
+
+      <div class="voucher-info">
+        QR kód obsahuje pouze kód voucheru.
+      </div>
+
+      <button
+        class="gold no-print"
+        onclick="printNiimbotLabel()"
+      >
+        🖨️ TISK ŠTÍTKU 30×20 mm
+      </button>
+
+      <div id="niimbotMessage" class="message"></div>
+
+      <button
+        class="secondary no-print"
+        onclick="window.print()"
+      >
+        ZÁLOŽNÍ TISK PŘES PROHLÍŽEČ
+      </button>
+
+      <button
+        class="secondary no-print"
+        onclick="openVoucherPage()"
+      >
+        OTEVŘÍT VOUCHER
+      </button>
+
+    </div>
+
+
+    <!-- ========================================================= -->
+    <!-- KONTROLA / UPLATNĚNÍ -->
+    <!-- ========================================================= -->
+
+    <div class="card no-print">
+
+      <h2>🔎 Uplatnit / ověřit voucher</h2>
+
+      <label for="redeemCode">
+        Kód voucheru
+      </label>
+
+      <input
+        id="redeemCode"
+        type="text"
+        autocomplete="off"
+        placeholder="ZK-XXXX-XXXX-XXXX"
+      >
+
+      <button
+        class="secondary"
+        onclick="lookupVoucher()"
+      >
+        ZKONTROLOVAT VOUCHER
+      </button>
+
+      <button
+        onclick="startScanner()"
+      >
+        📷 SKENOVAT QR
+      </button>
+
+      <div id="cameraBox" class="camera-box">
+        <video
+          id="camera"
+          autoplay
+          muted
+          playsinline
+        ></video>
+
+        <button
+          class="danger"
+          onclick="stopScanner()"
+        >
+          ZAVŘÍT SKENER
+        </button>
+      </div>
+
+      <div id="lookupMessage" class="message"></div>
+
+
+      <div
+        id="voucherStatus"
+        style="display:none; margin-top:18px;"
+      >
+
+        <div class="voucher-info">
+
+          <div>
+            Kód:
+            <strong id="lookupCode"></strong>
+          </div>
+
+          <div>
+            Původní hodnota:
+            <strong id="lookupAmount"></strong>
+          </div>
+
+          <div>
+            Zůstatek:
+            <strong id="lookupBalance"></strong>
+          </div>
+
+          <div>
+            Platnost do:
+            <strong id="lookupExpiry"></strong>
+          </div>
+
+          <div class="status">
+            Stav:
+            <span id="lookupStatus"></span>
+          </div>
+
+        </div>
+
+
+        <h2 style="margin-top:25px;">
+          Uplatnění
+        </h2>
+
+        <label for="redeemAmount">
+          Částka k čerpání (Kč)
+        </label>
+
+        <input
+          id="redeemAmount"
+          type="number"
+          min="1"
+          step="1"
+          placeholder="Např. 1500"
+        >
+
+        <label for="redeemOperator">
+          Kdo voucher uplatňuje
+        </label>
+
+        <input
+          id="redeemOperator"
+          type="text"
+          placeholder="Jméno prodavačky / prodavače"
+        >
+
+        <label for="redeemPin">
+          PIN pro uplatnění
+        </label>
+
+        <input
+          id="redeemPin"
+          type="password"
+          autocomplete="off"
+          placeholder="PIN"
+        >
+
+        <button
+          class="gold"
+          onclick="redeemVoucher()"
+        >
+          UPLATNIT VOUCHER
+        </button>
+
+        <div
+          id="redeemMessage"
+          class="message"
+        ></div>
+
+      </div>
+
+      <div class="security-note">
+        Voucherový kód ani PIN nejsou uložené v této webové stránce.
+        Ověření a změny stavu provádí Google Apps Script.
+        Citlivé operace jsou povolené pouze z autorizovaného zařízení.
+      </div>
+
+    </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- Skryté iframe pro POST komunikaci -->
+  <iframe
+    id="apiFrame"
+    name="apiFrame"
+    class="hidden-frame"
+  ></iframe>
+
+
+<script>
+
+  // ============================================================
+  // KONFIGURACE
+  // ============================================================
+
+  const API_URL =
+    "https://script.google.com/macros/s/AKfycbzwEzSEp40SAkRkTWNkfF1bqrLxD7NFRJx9xBhmwLUpKLBItBsqN56QhPzamYbyIy7R/exec";
+
+  const GITHUB_ORIGIN =
+    "https://zlatnicvi-konecni.github.io";
+
+  // API i tato stránka musí běžet pouze přes HTTPS.
+  if (location.protocol !== "https:") {
+    throw new Error("Aplikace musí být otevřena přes HTTPS.");
+  }
+
+  if (!API_URL.startsWith("https://")) {
+    throw new Error("API_URL must use HTTPS");
+  }
+
+
+  // ============================================================
+  // AUTORIZACE ZAŘÍZENÍ
+  // ============================================================
+
+  const DEVICE_STORAGE_KEY = "zlatnickaDilna_deviceAuth_v1";
+
+  function getStoredDeviceAuth() {
+    try {
+      const raw = localStorage.getItem(DEVICE_STORAGE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || !data.deviceId || !data.deviceToken) return null;
+
+      return {
+        deviceId: String(data.deviceId),
+        deviceToken: String(data.deviceToken)
+      };
+    } catch (error) {
+      console.error("Načtení autorizace zařízení:", error);
+      return null;
+    }
+  }
+
+  function saveDeviceAuth(data) {
+    if (!data || !data.deviceId || !data.deviceToken) {
+      throw new Error("Server neposkytl platné údaje zařízení.");
+    }
+    const auth = {
+      deviceId: String(data.deviceId),
+      deviceToken: String(data.deviceToken)
+    };
+    localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(auth));
+    return auth;
+  }
+
+  function clearDeviceAuth() {
+    try {
+      localStorage.removeItem(DEVICE_STORAGE_KEY);
+    } catch (error) {
+      console.error("Smazání autorizace zařízení:", error);
+    }
+  }
+
+  function escapeHtml(value) {
+    const div = document.createElement("div");
+    div.textContent = String(value == null ? "" : value);
+    return div.innerHTML;
+  }
+
+  function showDeviceGateForRegistration(message) {
+    const gate = document.getElementById("deviceGate");
+    const status = document.getElementById("deviceGateStatus");
+    const form = document.getElementById("deviceRegistrationForm");
+    gate.classList.add("visible");
+    document.getElementById("appContent").classList.remove("visible");
+    status.innerHTML =
+      "🔒 <strong>Toto zařízení není autorizované.</strong>" +
+      (message ? "<div class=\"device-small\">" + escapeHtml(message) + "</div>" : "");
+    form.style.display = "block";
+  }
+
+  function showAuthorizedDevice(auth) {
+    const gate = document.getElementById("deviceGate");
+    const status = document.getElementById("deviceGateStatus");
+    status.innerHTML =
+      "✅ <strong>Zařízení je autorizované.</strong>" +
+      (auth && auth.deviceName ? "<div class=\"device-small\">" + escapeHtml(auth.deviceName) + "</div>" : "");
+    gate.classList.remove("visible");
+    document.getElementById("appContent").classList.add("visible");
+  }
+
+  function showDeviceChecking() {
+    document.getElementById("deviceGate").classList.add("visible");
+    document.getElementById("appContent").classList.remove("visible");
+    document.getElementById("deviceGateStatus").innerHTML = "Ověřuji toto zařízení…";
+    document.getElementById("deviceRegistrationForm").style.display = "none";
+  }
+
+  async function checkDeviceAuthorization() {
+    const stored = getStoredDeviceAuth();
+    if (!stored) {
+      showDeviceGateForRegistration();
+      return false;
+    }
+    showDeviceChecking();
+    try {
+      const result = await postToAppsScript({
+        action: "device-status",
+        deviceId: stored.deviceId,
+        deviceToken: stored.deviceToken
+      }, false);
+      if (result && result.ok && result.authorized) {
+        showAuthorizedDevice(result);
+        return true;
+      }
+      clearDeviceAuth();
+      showDeviceGateForRegistration(
+        result && result.message ? result.message : "Požádejte správce o nové autorizování zařízení."
+      );
+      return false;
+    } catch (error) {
+      showDeviceGateForRegistration(
+        "Nepodařilo se ověřit zařízení. Zkontrolujte připojení k internetu a zkuste to znovu."
+      );
+      return false;
+    }
+  }
+
+  async function registerDevice() {
+    const keyInput = document.getElementById("registrationKey");
+    const key = String(keyInput.value || "").trim();
+    clearMessage("deviceRegistrationMessage");
+    if (!key) {
+      showMessage("deviceRegistrationMessage", "Zadejte jednorázový klíč.", "error");
+      return;
+    }
+    showMessage("deviceRegistrationMessage", "Ověřuji jednorázový klíč…", "ok");
+    try {
+      const result = await postToAppsScript({
+        action: "register-device",
+        registrationKey: key
+      }, true);
+      if (!result || !result.ok) {
+        showMessage(
+          "deviceRegistrationMessage",
+          result && result.message ? result.message : "Zařízení se nepodařilo autorizovat.",
+          "error"
+        );
+        return;
+      }
+      saveDeviceAuth(result);
+      keyInput.value = "";
+      showAuthorizedDevice({ deviceName: result.deviceName });
+    } catch (error) {
+      showMessage("deviceRegistrationMessage", "Chyba komunikace: " + error.message, "error");
+    }
+  }
+
+
+  // ============================================================
+  // POMOCNÉ FUNKCE
+  // ============================================================
+
+  function makeRequestId() {
+    return (
+      Date.now().toString(36) +
+      Math.random().toString(36).slice(2)
+    );
+  }
+
+
+  function showMessage(
+    id,
+    text,
+    type
+  ) {
+    const el =
+      document.getElementById(id);
+
+    el.className =
+      "message " + type;
+
+    el.textContent = text;
+  }
+
+
+  function clearMessage(id) {
+    const el =
+      document.getElementById(id);
+
+    el.className =
+      "message";
+
+    el.textContent = "";
+  }
+
+
+  function money(value) {
+    return (
+      Number(value || 0)
+        .toLocaleString("cs-CZ") +
+      " Kč"
+    );
+  }
+
+function postToAppsScript(data, allowUnauthenticated) {
+
+  return new Promise(function(resolve, reject) {
+    const requestId = makeRequestId();
+    const iframe = document.getElementById("apiFrame");
+    let form = null;
+    let timeout = null;
+
+    function cleanup() {
+      window.removeEventListener("message", receive);
+      if (timeout) clearTimeout(timeout);
+      if (form && form.parentNode) form.remove();
+    }
+
+    function receive(event) {
+      const response = event.data;
+      if (!response || response.type !== "voucher-api" || response.requestId !== requestId) return;
+      cleanup();
+      resolve(response.result);
+    }
+
+    window.addEventListener("message", receive);
+
+    form = document.createElement("form");
+    form.method = "POST";
+    form.action = API_URL;
+    form.target = iframe.name;
+    form.style.display = "none";
+
+    const payload = { ...data, requestId: requestId };
+
+    if (!allowUnauthenticated) {
+      const deviceAuth = getStoredDeviceAuth();
+      if (!deviceAuth) {
+        cleanup();
+        reject(new Error("Toto zařízení není autorizované."));
+        return;
+      }
+      payload.deviceId = deviceAuth.deviceId;
+      payload.deviceToken = deviceAuth.deviceToken;
+    }
+
+    Object.keys(payload).forEach(function(key) {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = payload[key] == null ? "" : payload[key];
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+
+    timeout = setTimeout(function() {
+      cleanup();
+      reject(new Error("Server neodpověděl."));
+    }, 30000);
+  });
+}
+
+
+  // ============================================================
+  // VYTVOŘENÍ VOUCHERU
+  // ============================================================
+
+  async function createVoucher() {
+
+    clearMessage(
+      "createMessage"
+    );
+
+    const amount =
+      document.getElementById(
+        "createAmount"
+      ).value;
+
+    const issuer =
+      document.getElementById(
+        "createIssuer"
+      ).value.trim();
+
+    const pin =
+      document.getElementById(
+        "createPin"
+      ).value;
+
+
+    if (!amount) {
+      showMessage(
+        "createMessage",
+        "Zadejte hodnotu voucheru.",
+        "error"
+      );
+      return;
+    }
+
+    if (!issuer) {
+      showMessage(
+        "createMessage",
+        "Zadejte, kdo voucher vystavil.",
+        "error"
+      );
+      return;
+    }
+
+    if (!pin) {
+      showMessage(
+        "createMessage",
+        "Zadejte PIN pro vytvoření.",
+        "error"
+      );
+      return;
+    }
+
+
+    showMessage(
+      "createMessage",
+      "Vytvářím voucher…",
+      "ok"
+    );
+
+
+    try {
+
+      const result =
+        await postToAppsScript({
+          action: "create",
+          amount: amount,
+          issuer: issuer,
+          pin: pin
+        });
+
+
+      if (!result.ok) {
+
+        showMessage(
+          "createMessage",
+          result.message ||
+            "Voucher se nepodařilo vytvořit.",
+          "error"
+        );
+
+        return;
+      }
+
+
+      document.getElementById(
+        "voucherResult"
+      ).style.display =
+        "block";
+
+
+      document.getElementById(
+        "resultCode"
+      ).textContent =
+        result.code;
+
+
+      document.getElementById(
+        "resultAmount"
+      ).textContent =
+        money(result.amount);
+
+
+      document.getElementById(
+        "resultExpiry"
+      ).textContent =
+        result.expiry;
+
+
+      generateQR(
+        result.code
+      );
+
+
+      window.currentVoucherUrl =
+        result.voucherUrl;
+
+
+      showMessage(
+        "createMessage",
+        "Voucher byl úspěšně vytvořen.",
+        "ok"
+      );
+
+
+      document.getElementById(
+        "createPin"
+      ).value = "";
+
+
+    } catch (error) {
+
+      showMessage(
+        "createMessage",
+        "Chyba komunikace se serverem. Zkuste to znovu.",
+        "error"
+      );
+    }
+  }
+
+
+  // ============================================================
+  // QR
+  // ============================================================
+
+  function generateQR(text) {
+
+    const container =
+      document.getElementById(
+        "qrcode"
+      );
+
+    container.innerHTML =
+      "";
+
+
+    try {
+
+      const qr =
+        qrcode(
+          0,
+          "M"
+        );
+
+      /*
+        QR OBSAHUJE POUZE KÓD VOUCHERU.
+
+        Neobsahuje Google URL.
+        Neobsahuje PIN.
+      */
+
+      qr.addData(
+        String(text)
+      );
+
+      qr.make();
+
+
+      container.innerHTML =
+        qr.createImgTag(
+          6,
+          12
+        );
+
+
+    } catch (error) {
+
+      container.textContent =
+        "QR se nepodařilo vytvořit.";
+
+      console.error(error);
+    }
+  }
+
+
+  // ============================================================
+  // PŘÍMÝ TISK NIIMBOT B21S – ŠTÍTEK 30×20 mm
+  //
+  // B21S je 203 dpi, tedy přibližně 8 bodů na mm.
+  // Pro štítek 30×20 mm používáme 240×160 px.
+  // QR je vlevo, kód voucheru vpravo – aby byl dobře čitelný.
+  // ============================================================
+
+  const NIIMBOT_B21S_MODEL = {
+    name_prefixes: ["B21"],
+    task: "b1",
+    density: 3,
+    label_type: 1,
+    speed: 1
+  };
+
+  const NIIMBOT_B21S_SIZE = {
+    w_px: 240,
+    h_px: 160,
+    offset_y_px: 0,
+    dpi: 203
+  };
+
+
+  function createNiimbotLabelDataUrl(code) {
+
+    return new Promise(function(resolve, reject) {
+
+      try {
+
+        const qr = qrcode(0, "M");
+        qr.addData(String(code));
+        qr.make();
+
+        const qrDataUrl = qr.createDataURL(4, 0);
+        const qrImage = new Image();
+
+        qrImage.onload = function() {
+
+          const canvas = document.createElement("canvas");
+          canvas.width = NIIMBOT_B21S_SIZE.w_px;
+          canvas.height = NIIMBOT_B21S_SIZE.h_px;
+
+          const ctx = canvas.getContext("2d");
+
+          // Bílé pozadí.
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // QR vlevo – dostatečně velký pro spolehlivé načtení mobilem.
+          const qrSize = 126;
+          const qrX = 8;
+          const qrY = Math.round((NIIMBOT_B21S_SIZE.h_px - qrSize) / 2);
+
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+
+          // Kód voucheru je součástí ODESÍLANÉHO OBRÁZKU štítku.
+          // Tedy se do NIIMBOTU neposílá jen QR — tiskárna dostane QR + text.
+          // Rozdělení do dvou řádků je na 30×20 mm čitelné.
+          const codeText = String(code);
+          const parts = codeText.split("-");
+          let line1 = codeText;
+          let line2 = "";
+          if (parts.length >= 4) {
+            line1 = parts.slice(0, 2).join("-");
+            line2 = parts.slice(2).join("-");
+          }
+
+          ctx.fillStyle = "#000000";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.font = "700 17px monospace";
+
+          const textCenterX = 190;
+          ctx.fillText(line1, textCenterX, 67);
+          if (line2) {
+            ctx.fillText(line2, textCenterX, 94);
+          }
+
+          resolve(canvas.toDataURL("image/png"));
+        };
+
+        qrImage.onerror = function() {
+          reject(new Error("QR obrázek se nepodařilo připravit."));
+        };
+
+        qrImage.src = qrDataUrl;
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+
+  async function printNiimbotLabel() {
+
+    const messageId = "niimbotMessage";
+    const code =
+      document.getElementById("resultCode").textContent.trim();
+
+    if (!code) {
+      showMessage(messageId, "Nejdřív vytvořte voucher.", "error");
+      return;
+    }
+
+    if (!window.Niimbot || !Niimbot.isSupported()) {
+      showMessage(
+        messageId,
+        "Přímý tisk vyžaduje Chrome nebo Edge. Firefox Web Bluetooth nepodporuje.",
+        "error"
+      );
+      return;
+    }
+
+    showMessage(
+      messageId,
+      "Připravuji štítek a připojuji NIIMBOT…",
+      "ok"
+    );
+
+    try {
+
+      const labelUrl =
+        await createNiimbotLabelDataUrl(code);
+
+      await Niimbot.printImage(labelUrl, {
+        model: NIIMBOT_B21S_MODEL,
+        size: NIIMBOT_B21S_SIZE,
+        copies: 1,
+        onProgress: function(status) {
+          showMessage(messageId, "Tisk: " + status, "ok");
+        }
+      });
+
+      showMessage(
+        messageId,
+        "Štítek byl odeslán do NIIMBOT B21S.",
+        "ok"
+      );
+
+    } catch (error) {
+
+      console.error("NIIMBOT tisk:", error);
+
+      showMessage(
+        messageId,
+        "Tisk se nepodařil: " + (error.message || error),
+        "error"
+      );
+    }
+  }
+
+
+  // ============================================================
+  // OTEVŘENÍ VOUCHERU
+  // ============================================================
+
+  function openVoucherPage() {
+
+    if (
+      !window.currentVoucherUrl
+    ) {
+      return;
+    }
+
+    window.open(
+      window.currentVoucherUrl,
+      "_blank"
+    );
+  }
+
+
+  // ============================================================
+  // KONTROLA VOUCHERU
+  // ============================================================
+
+  async function lookupVoucher() {
+
+    clearMessage(
+      "lookupMessage"
+    );
+
+    const code =
+      document.getElementById(
+        "redeemCode"
+      ).value.trim().toUpperCase();
+
+
+    if (!code) {
+
+      showMessage(
+        "lookupMessage",
+        "Zadejte kód voucheru.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    showMessage(
+      "lookupMessage",
+      "Ověřuji voucher…",
+      "ok"
+    );
+
+
+    try {
+
+      const result =
+        await postToAppsScript({
+          action: "lookup",
+          code: code
+        });
+
+
+      if (!result.ok) {
+
+        document.getElementById(
+          "voucherStatus"
+        ).style.display =
+          "none";
+
+        showMessage(
+          "lookupMessage",
+          result.message ||
+            "Voucher nebyl nalezen.",
+          "error"
+        );
+
+        return;
+      }
+
+
+      document.getElementById(
+        "voucherStatus"
+      ).style.display =
+        "block";
+
+
+      document.getElementById(
+        "lookupCode"
+      ).textContent =
+        result.code;
+
+
+      document.getElementById(
+        "lookupAmount"
+      ).textContent =
+        money(result.amount);
+
+
+      document.getElementById(
+        "lookupBalance"
+      ).textContent =
+        money(result.balance);
+
+
+      document.getElementById(
+        "lookupExpiry"
+      ).textContent =
+        result.expiry;
+
+
+      document.getElementById(
+        "lookupStatus"
+      ).textContent =
+        result.status;
+
+
+      showMessage(
+        "lookupMessage",
+        "Voucher byl nalezen.",
+        "ok"
+      );
+
+
+    } catch (error) {
+
+      showMessage(
+        "lookupMessage",
+        "Chyba komunikace se serverem. Zkuste to znovu.",
+        "error"
+      );
+    }
+  }
+
+
+  // ============================================================
+  // UPLATNĚNÍ
+  // ============================================================
+
+  async function redeemVoucher() {
+
+    clearMessage(
+      "redeemMessage"
+    );
+
+
+    const code =
+      document.getElementById(
+        "redeemCode"
+      ).value.trim().toUpperCase();
+
+
+    const amount =
+      document.getElementById(
+        "redeemAmount"
+      ).value;
+
+
+    const operator =
+      document.getElementById(
+        "redeemOperator"
+      ).value.trim();
+
+
+    const pin =
+      document.getElementById(
+        "redeemPin"
+      ).value;
+
+
+    if (!code) {
+      showMessage(
+        "redeemMessage",
+        "Chybí kód voucheru.",
+        "error"
+      );
+      return;
+    }
+
+
+    if (!amount) {
+      showMessage(
+        "redeemMessage",
+        "Zadejte částku k čerpání.",
+        "error"
+      );
+      return;
+    }
+
+
+    if (!operator) {
+      showMessage(
+        "redeemMessage",
+        "Zadejte, kdo voucher uplatňuje.",
+        "error"
+      );
+      return;
+    }
+
+
+    if (!pin) {
+      showMessage(
+        "redeemMessage",
+        "Zadejte PIN pro uplatnění.",
+        "error"
+      );
+      return;
+    }
+
+
+    showMessage(
+      "redeemMessage",
+      "Uplatňuji voucher…",
+      "ok"
+    );
+
+
+    try {
+
+      const result =
+        await postToAppsScript({
+          action: "redeem",
+          code: code,
+          amount: amount,
+          operator: operator,
+          pin: pin
+        });
+
+
+      if (!result.ok) {
+
+        showMessage(
+          "redeemMessage",
+          result.message ||
+            "Voucher se nepodařilo uplatnit.",
+          "error"
+        );
+
+        return;
+      }
+
+
+      showMessage(
+        "redeemMessage",
+        result.message ||
+          "Voucher byl uplatněn.",
+        "ok"
+      );
+
+
+      document.getElementById(
+        "redeemPin"
+      ).value = "";
+
+
+      document.getElementById(
+        "redeemAmount"
+      ).value = "";
+
+
+      await lookupVoucher();
+
+
+    } catch (error) {
+
+      showMessage(
+        "redeemMessage",
+        "Chyba komunikace se serverem. Zkuste to znovu.",
+        "error"
+      );
+    }
+  }
+
+
+  // ============================================================
+  // QR SKENER – POKUD HO PROHLÍŽEČ PODPORUJE
+  // ============================================================
+
+  let scannerStream =
+    null;
+
+  let scannerRunning =
+    false;
+
+
+  async function startScanner() {
+
+    if (
+      !("BarcodeDetector" in window)
+    ) {
+
+      showMessage(
+        "lookupMessage",
+        "Tento prohlížeč nepodporuje přímé skenování QR. Použijte ruční zadání kódu.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    try {
+
+      const video =
+        document.getElementById(
+          "camera"
+        );
+
+      document.getElementById(
+        "cameraBox"
+      ).style.display =
+        "block";
+
+
+      scannerStream =
+        await navigator.mediaDevices
+          .getUserMedia({
+            video: {
+              facingMode: {
+                ideal: "environment"
+              }
+            },
+            audio: false
+          });
+
+
+      video.srcObject =
+        scannerStream;
+
+
+      scannerRunning =
+        true;
+
+
+      scanFrame();
+
+
+    } catch (error) {
+
+      showMessage(
+        "lookupMessage",
+        "K fotoaparátu nebyl povolen přístup.",
+        "error"
+      );
+
+      stopScanner();
+    }
+  }
+
+
+  async function scanFrame() {
+
+    if (!scannerRunning) {
+      return;
+    }
+
+
+    const video =
+      document.getElementById(
+        "camera"
+      );
+
+
+    try {
+
+      const detector =
+        new BarcodeDetector({
+          formats: ["qr_code"]
+        });
+
+
+      const codes =
+        await detector.detect(
+          video
+        );
+
+
+      if (
+        codes &&
+        codes.length > 0
+      ) {
+
+        const value =
+          codes[0].rawValue || "";
+
+
+        document.getElementById(
+          "redeemCode"
+        ).value =
+          value.trim().toUpperCase();
+
+
+        stopScanner();
+
+        lookupVoucher();
+
+        return;
+      }
+
+
+    } catch (error) {
+
+      console.error(error);
+    }
+
+
+    requestAnimationFrame(
+      scanFrame
+    );
+  }
+
+
+  function stopScanner() {
+
+    scannerRunning =
+      false;
+
+
+    if (
+      scannerStream
+    ) {
+
+      scannerStream
+        .getTracks()
+        .forEach(function(track) {
+          track.stop();
+        });
+
+      scannerStream =
+        null;
+    }
+
+
+    const video =
+      document.getElementById(
+        "camera"
+      );
+
+    video.srcObject =
+      null;
+
+
+    document.getElementById(
+      "cameraBox"
+    ).style.display =
+      "none";
+  }
+
+
+  // ============================================================
+  // START AUTORIZACE ZAŘÍZENÍ
+  // ============================================================
+
+  document.addEventListener("DOMContentLoaded", function() {
+    checkDeviceAuthorization();
+  });
+
+
+  // ============================================================
+  // AUTOMATICKÉ NAČTENÍ KÓDU Z URL
+  //
+  // Vypnuto: voucherový kód se z URL GitHub stránky automaticky nenačítá.
+  // ============================================================
+
+</script>
+
+</body>
+</html>
